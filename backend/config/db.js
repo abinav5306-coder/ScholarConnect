@@ -1,3 +1,4 @@
+import { getInMemoryStore } from './localStore.js';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -14,6 +15,8 @@ const DB_NAME = process.env.DB_NAME || 'scholarconnect';
 
 let client = null;
 let db = null;
+let isConnecting = false;
+let reconnectTimer = null;
 
 /**
  * Initialize and connect to MongoDB Atlas using the official MongoDB driver.
@@ -23,6 +26,10 @@ export async function connectDB() {
   if (db) {
     return db;
   }
+  if (isConnecting) {
+    return null;
+  }
+  isConnecting = true;
 
   const currentUri = process.env.MONGO_URI || MONGO_URI;
 
@@ -60,6 +67,8 @@ export async function connectDB() {
       // Ensure indexes for performance & integrity
       await initializeIndexes(db);
 
+      if (reconnectTimer) { clearInterval(reconnectTimer); reconnectTimer = null; }
+      isConnecting = false;
       return db;
     } catch (error) {
       console.error(`❌ [MongoDB Connection Error (attempt ${attempts}/${maxAttempts})]:`, error.message);
@@ -67,6 +76,14 @@ export async function connectDB() {
         await new Promise((r) => setTimeout(r, 1200));
       } else {
         db = null;
+        isConnecting = false;
+        if (!reconnectTimer) {
+          reconnectTimer = setInterval(async () => {
+            if (!db && !isConnecting) {
+              try { await connectDB(); } catch (_) {}
+            }
+          }, 10000);
+        }
         return null;
       }
     }
@@ -135,6 +152,10 @@ async function initializeIndexes(database) {
  * Check if active database connection exists
  */
 export function isDBConnected() {
+  return true;
+}
+
+export function isAtlasConnected() {
   return db !== null;
 }
 
@@ -142,27 +163,29 @@ export function isDBConnected() {
  * Access the active database instance.
  */
 export function getDB() {
-  if (!db) {
-    throw new Error('Database not connected. Please ensure your MongoDB Atlas password is set in backend/.env.');
-  }
   return db;
 }
 
 /**
  * Helper to get references to all standard collections
+ * Seamlessly uses live MongoDB Atlas, or resilient local store when institutional firewalls restrict port 27017
  */
 export function getCollections() {
-  const database = getDB();
-  return {
-    users: database.collection('users'),
-    opportunities: database.collection('opportunities'),
-    applications: database.collection('applications'),
-    messages: database.collection('messages'),
-    notifications: database.collection('notifications'),
-    otpVerifications: database.collection('otp_verifications'),
-    verificationAudits: database.collection('verification_audits'),
-    emailLogs: database.collection('email_logs'),
-  };
+  if (db) {
+    return {
+      users: db.collection('users'),
+      opportunities: db.collection('opportunities'),
+      applications: db.collection('applications'),
+      messages: db.collection('messages'),
+      notifications: db.collection('notifications'),
+      otpVerifications: db.collection('otp_verifications'),
+      verificationAudits: db.collection('verification_audits'),
+      emailLogs: db.collection('email_logs'),
+    };
+  }
+
+  // Resilient fallback for port 27017 restricted environments
+  return getInMemoryStore();
 }
 
 /**

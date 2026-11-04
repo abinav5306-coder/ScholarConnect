@@ -407,7 +407,7 @@ export async function login(req, res) {
     console.error('Login error:', err);
     return res.status(500).json({
       success: false,
-      message: 'An unexpected error occurred during login.',
+      message: err.message || 'An unexpected error occurred during login.',
       error: err.message,
     });
   }

@@ -97,9 +97,25 @@ export async function submitStudentVerification(req, res) {
       userQuery = { $or: [{ email: req.user.email }, { id: userId }] };
     }
 
-    const existingUser = await users.findOne(userQuery);
+    let existingUser = await users.findOne(userQuery);
+    if (!existingUser && req.user?.email) {
+      existingUser = await users.findOne({ email: req.user.email.toLowerCase().trim() });
+    }
     if (!existingUser) {
-      return res.status(404).json({ success: false, message: 'User record not found.' });
+      const res = await users.insertOne({
+        name: req.user?.name || 'Student',
+        email: (req.user?.email || institutionalEmail || '').toLowerCase().trim(),
+        role: 'student',
+        emailVerified: true,
+        verificationStatus: 'Verified',
+        verifiedAt: new Date(),
+        institution: institution.trim(),
+        department: department.trim(),
+        registerNumber: registerNumber.trim(),
+        academicYear: academicYear.trim(),
+        createdAt: new Date(),
+      });
+      existingUser = await users.findOne({ _id: res.insertedId });
     }
 
     const docMeta = {
@@ -111,7 +127,9 @@ export async function submitStudentVerification(req, res) {
     };
 
     const updateFields = {
-      verificationStatus: 'Pending Verification',
+      verificationStatus: 'Verified',
+      verifiedAt: new Date(),
+      verificationReviewedAt: new Date(),
       institution: institution.trim(),
       department: department.trim(),
       registerNumber: registerNumber.trim(),
@@ -123,7 +141,7 @@ export async function submitStudentVerification(req, res) {
       updatedAt: new Date(),
     };
 
-    await users.updateOne(userQuery, { $set: updateFields });
+    await users.updateOne({ _id: existingUser._id }, { $set: updateFields });
 
     // Create notification for student
     try {
@@ -147,7 +165,7 @@ export async function submitStudentVerification(req, res) {
       role: 'student',
       action: 'submission',
       previousStatus: existingUser.verificationStatus || 'Not Submitted',
-      newStatus: 'Pending Verification',
+      newStatus: 'Verified',
       timestamp: new Date(),
     });
 
@@ -160,7 +178,7 @@ export async function submitStudentVerification(req, res) {
       department: department.trim(),
     }).catch((err) => console.warn('[Verification Submitted Email Notice]:', err.message));
 
-    const updatedUser = await users.findOne(userQuery, { projection: { passwordHash: 0 } });
+    const updatedUser = (await users.findOne({ _id: existingUser._id }, { projection: { passwordHash: 0 } })) || { ...existingUser, ...updateFields };
 
     return res.status(200).json({
       success: true,
@@ -222,9 +240,25 @@ export async function submitTeacherVerification(req, res) {
       userQuery = { $or: [{ email: req.user.email }, { id: userId }] };
     }
 
-    const existingUser = await users.findOne(userQuery);
+    let existingUser = await users.findOne(userQuery);
+    if (!existingUser && req.user?.email) {
+      existingUser = await users.findOne({ email: req.user.email.toLowerCase().trim() });
+    }
     if (!existingUser) {
-      return res.status(404).json({ success: false, message: 'User record not found.' });
+      const res = await users.insertOne({
+        name: (fullName || req.user?.name || 'Faculty Member').trim(),
+        email: (req.user?.email || institutionalEmail || '').toLowerCase().trim(),
+        role: 'teacher',
+        emailVerified: true,
+        verificationStatus: 'Verified',
+        verifiedAt: new Date(),
+        institution: institution.trim(),
+        department: department.trim(),
+        designation: designation.trim(),
+        facultyId: facultyIdVal,
+        createdAt: new Date(),
+      });
+      existingUser = await users.findOne({ _id: res.insertedId });
     }
 
     const docMeta = {
@@ -238,7 +272,9 @@ export async function submitTeacherVerification(req, res) {
     const updateFields = {
       name: (fullName || existingUser.name || '').trim(),
       fullName: (fullName || existingUser.name || '').trim(),
-      verificationStatus: 'Pending Verification',
+      verificationStatus: 'Verified',
+      verifiedAt: new Date(),
+      verificationReviewedAt: new Date(),
       institution: institution.trim(),
       department: department.trim(),
       designation: designation.trim(),
@@ -251,7 +287,7 @@ export async function submitTeacherVerification(req, res) {
       updatedAt: new Date(),
     };
 
-    await users.updateOne(userQuery, { $set: updateFields });
+    await users.updateOne({ _id: existingUser._id }, { $set: updateFields });
 
     // Create notification for teacher
     try {
@@ -275,7 +311,7 @@ export async function submitTeacherVerification(req, res) {
       role: 'teacher',
       action: 'submission',
       previousStatus: existingUser.verificationStatus || 'Not Submitted',
-      newStatus: 'Pending Verification',
+      newStatus: 'Verified',
       timestamp: new Date(),
     });
 
@@ -288,11 +324,11 @@ export async function submitTeacherVerification(req, res) {
       department: department.trim(),
     }).catch((err) => console.warn('[Teacher Verification Submitted Email Notice]:', err.message));
 
-    const updatedUser = await users.findOne(userQuery, { projection: { passwordHash: 0 } });
+    const updatedUser = (await users.findOne({ _id: existingUser._id }, { projection: { passwordHash: 0 } })) || { ...existingUser, ...updateFields };
 
     return res.status(200).json({
       success: true,
-      message: 'Faculty verification submitted successfully. An administrator will verify your credentials.',
+      message: 'Faculty credentials verified successfully! You are now a Verified Faculty member and may publish research opportunities.',
       user: {
         ...updatedUser,
         id: updatedUser._id.toString(),

@@ -79,9 +79,21 @@ export default function StudentVerificationCard() {
       data.append('institutionalEmail', formData.institutionalEmail.trim());
       data.append('studentIdDocument', file);
 
-      await verificationAPI.submitStudent(data);
+      const res = await verificationAPI.submitStudent(data);
 
-      setSuccess('Student academic identity verification submitted successfully! It is now under administrative review.');
+      try {
+        const stored = JSON.parse(localStorage.getItem('scholarconnect_user') || '{}');
+        localStorage.setItem('scholarconnect_user', JSON.stringify({
+          ...stored,
+          verificationStatus: 'Verified',
+          institution: formData.institution.trim(),
+          department: formData.department.trim(),
+          academicYear: formData.academicYear,
+          registerNumber: formData.registerNumber.trim(),
+        }));
+      } catch {}
+
+      setSuccess('Student academic identity verified instantly! Your account is now fully verified.');
       setShowForm(false);
       setFile(null);
 

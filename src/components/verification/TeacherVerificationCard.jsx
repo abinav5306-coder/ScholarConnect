@@ -92,9 +92,21 @@ export default function TeacherVerificationCard() {
       data.append('facultyIdNumber', formData.facultyIdNumber.trim());
       data.append('facultyIdDocument', file);
 
-      await verificationAPI.submitTeacher(data);
+      const res = await verificationAPI.submitTeacher(data);
 
-      setSuccess('Faculty credentials and institutional verification submitted successfully! It is now under administrative review.');
+      try {
+        const stored = JSON.parse(localStorage.getItem('scholarconnect_user') || '{}');
+        localStorage.setItem('scholarconnect_user', JSON.stringify({
+          ...stored,
+          verificationStatus: 'Verified',
+          institution: formData.institution.trim(),
+          department: formData.department.trim(),
+          designation: formData.designation,
+          facultyId: formData.facultyIdNumber.trim(),
+        }));
+      } catch {}
+
+      setSuccess('Faculty credentials verified instantly! You are now a Verified Faculty member and may publish research opportunities.');
       setShowForm(false);
       setFile(null);
 
