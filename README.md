@@ -172,6 +172,37 @@ ScholarConnect/
 
 ---
 
+---
+
+## 🌐 Deploying to Vercel
+
+ScholarConnect is pre-configured for full-stack deployment on [Vercel](https://vercel.com) using **Vercel Serverless Functions** and **Vite SPA rewrites**.
+
+### 1. Import Project to Vercel
+1. Log in to [Vercel](https://vercel.com) and click **"Add New Project"**.
+2. Select and import your GitHub repository: `abinav5306-coder/ScholarConnect`.
+3. Framework Preset: **Vite** (Root Directory: `./`, Build Command: `npm run build`, Output Directory: `dist`).
+
+### 2. Configure Environment Variables
+In **Project Settings -> Environment Variables**, add the following:
+
+| Variable Name | Example / Recommended Value | Description |
+| :--- | :--- | :--- |
+| `MONGO_URI` | `mongodb+srv://...` | MongoDB Atlas Connection String |
+| `DB_NAME` | `scholarconnect` | MongoDB Database Name |
+| `JWT_SECRET` | `scholarconnect_super_secret_jwt_key_2026_dev` | Secret key for JWT signing |
+| `JWT_EXPIRES_IN` | `7d` | JWT expiration duration |
+| `CLIENT_URL` | `https://your-project-name.vercel.app` | Production deployment URL |
+| `SMTP_HOST` | `smtp.gmail.com` | Nodemailer SMTP Host |
+| `SMTP_PORT` | `587` | Nodemailer SMTP Port |
+| `SMTP_USER` | `your-email@gmail.com` | Nodemailer SMTP Username |
+| `SMTP_PASS` | `your-app-password` | Gmail App Password (16 chars) |
+| `SMTP_SECURE` | `false` | TLS security flag |
+| `EMAIL_FROM` | `"ScholarConnect" <your-email@gmail.com>` | Outgoing email header |
+
+### 3. Deploy
+Click **Deploy**. Vercel will install workspace dependencies, build the React frontend, and deploy the serverless REST API endpoints automatically!
+
 ## 📜 License
 
 This project is licensed under the MIT License.

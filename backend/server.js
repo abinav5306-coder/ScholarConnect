@@ -96,7 +96,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server and Connect Database
-async function startServer() {
+export async function startServer() {
   const httpServer = http.createServer(app);
 
   // Initialize Socket.IO Server with JWT authentication & events
@@ -116,4 +116,10 @@ async function startServer() {
   }
 }
 
-startServer();
+// In standard Node.js environments (local dev or persistent servers like Render/Railway), start HTTP server
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export { app };
+export default app;

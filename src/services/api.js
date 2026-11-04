@@ -3,7 +3,7 @@
  * Communicates with the Node.js/Express MongoDB Atlas Backend
  */
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 /**
  * Helper to make HTTP requests with JSON and Auth header

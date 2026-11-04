@@ -7,10 +7,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Private secure directory for student resumes (not publicly accessible via static route)
-export const RESUME_UPLOAD_DIR = path.resolve(__dirname, '../uploads/resumes');
-if (!fs.existsSync(RESUME_UPLOAD_DIR)) {
-  fs.mkdirSync(RESUME_UPLOAD_DIR, { recursive: true });
+import os from 'os';
+// Private secure directory for student resumes (uses os.tmpdir() in serverless environments like Vercel)
+export const RESUME_UPLOAD_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads', 'resumes')
+  : path.resolve(__dirname, '../uploads/resumes');
+
+try {
+  if (!fs.existsSync(RESUME_UPLOAD_DIR)) {
+    fs.mkdirSync(RESUME_UPLOAD_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Resume] Directory initialization warning:', err.message);
 }
 
 // Multer disk storage for PDF resumes

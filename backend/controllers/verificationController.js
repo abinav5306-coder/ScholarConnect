@@ -14,10 +14,18 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Secure private upload directory (not served as public static assets)
-const UPLOAD_DIR = path.resolve(__dirname, '../uploads/verifications');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+import os from 'os';
+// Secure private upload directory (uses os.tmpdir() in serverless environments like Vercel)
+const UPLOAD_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads', 'verifications')
+  : path.resolve(__dirname, '../uploads/verifications');
+
+try {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[Verification] Directory initialization warning:', err.message);
 }
 
 // Multer Storage Configuration
