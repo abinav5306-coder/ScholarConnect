@@ -59,25 +59,7 @@ export async function createOpportunity(req, res) {
     const resolvedTeacherName = req.user?.name || teacherName || 'Faculty Mentor';
     const resolvedTeacherEmail = req.user?.email || teacherEmail || 'faculty@university.edu';
 
-    // Verify faculty academic identity before publishing
-    if (resolvedTeacherId && resolvedTeacherId !== 'teacher-default') {
-      let teacherQuery = {};
-      if (ObjectId.isValid(resolvedTeacherId)) {
-        teacherQuery = { _id: new ObjectId(resolvedTeacherId) };
-      } else {
-        teacherQuery = { $or: [{ email: resolvedTeacherEmail }, { id: resolvedTeacherId }] };
-      }
-
-      const teacherDoc = await users.findOne(teacherQuery);
-      if (teacherDoc && teacherDoc.role === 'teacher' && teacherDoc.verificationStatus !== 'Verified') {
-        return res.status(403).json({
-          success: false,
-          code: 'UNVERIFIED_TEACHER',
-          message: 'Only verified faculty members can publish research opportunities. Please complete Academic Identity Verification in your profile.',
-          verificationStatus: teacherDoc.verificationStatus || 'Not Submitted',
-        });
-      }
-    }
+    // Faculty verification restriction removed: any registered teacher can publish opportunities immediately
 
     const mergedSkills = skills && skills.length > 0 ? skills : requiredSkills;
     const mergedYears = eligibilityYears && eligibilityYears.length > 0 ? eligibilityYears : eligibleYears;

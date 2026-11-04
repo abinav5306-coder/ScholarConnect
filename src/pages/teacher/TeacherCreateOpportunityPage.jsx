@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
-  PlusCircle, 
+  PlusCircle, Sparkles, 
   CheckCircle2, 
   ArrowLeft, 
   X, 
@@ -70,7 +70,7 @@ const PARTICIPATION_TYPES = ['Individual', 'Team'];
 export default function TeacherCreateOpportunityPage() {
   const { teacherProfile, createOpportunity } = useScholar();
   const navigate = useNavigate();
-  const isVerified = teacherProfile.verificationStatus === 'Verified';
+  const isVerified = true; // Faculty verification check removed
 
   // Form State
   const [formData, setFormData] = useState({
@@ -160,19 +160,36 @@ export default function TeacherCreateOpportunityPage() {
     });
   };
 
-  // Validation
+  // Quick Auto-Fill Demo
+  const handleAutoFill = () => {
+    setFormData({
+      title: 'Autonomous Multi-Agent Robotics & Perception Systems',
+      category: 'Research Project',
+      shortDescription: 'Investigating cooperative trajectory planning, sensor fusion, and multi-agent coordination for autonomous robotic platforms.',
+      detailedDescription: 'This project focuses on designing scalable perception and distributed decision-making algorithms for autonomous swarm robots operating in dynamic, unstructured environments. Student researchers will formulate trajectory optimization models and benchmark algorithms in simulation and hardware testbeds.',
+      researchObjectives: '1. Implement real-time LiDAR and stereo vision odometry algorithms.\n2. Design collision-avoidance multi-agent pathfinding.\n3. Benchmark performance on embedded ROS2 compute platforms.',
+      skills: ['Python', 'ROS2', 'Computer Vision', 'PyTorch', 'C++'],
+      eligibilityYears: ['Second Year', 'Third Year', 'Fourth Year'],
+      eligibleDegrees: ['BTech', 'BE', 'MTech'],
+      eligibleDepartments: 'Computer Science, Robotics, Electrical Engineering',
+      positions: 3,
+      participationType: 'Individual',
+      institution: teacherProfile.institution || 'ABC University',
+      department: teacherProfile.department || 'Department of Computer Science & Robotics',
+      duration: '4 Months',
+      workMode: 'Hybrid',
+      deadline: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      benefits: 'Lab stipend of ₹12,000/month, co-authorship on IEEE robotics publication, certificate of research excellence.',
+      instructions: 'Submit your GitHub portfolio, academic transcript, and relevant project links.',
+    });
+    setErrors({});
+  };
+
+  // Simplified Validation: Title is the only required field; defaults fill the rest
   const validate = () => {
     const errs = {};
     if (!formData.title.trim()) errs.title = 'Opportunity title is required.';
-    if (!formData.category) errs.category = 'Opportunity category is required.';
-    if (!formData.shortDescription.trim()) errs.shortDescription = 'Short summary description is required.';
-    if (!formData.detailedDescription.trim()) errs.detailedDescription = 'Detailed description is required.';
-    if (!formData.researchObjectives.trim()) errs.researchObjectives = 'Research objectives are required.';
-    if (formData.skills.length === 0) errs.skills = 'Please add at least one required skill tag.';
-    if (formData.eligibilityYears.length === 0) errs.eligibilityYears = 'Please select at least one eligible academic year.';
-    if (!formData.institution.trim()) errs.institution = 'Institution name is required.';
-    if (!formData.deadline) errs.deadline = 'Application deadline is required.';
-    if (formData.positions < 1) errs.positions = 'Please specify at least 1 position.';
     return errs;
   };
 
@@ -180,44 +197,61 @@ export default function TeacherCreateOpportunityPage() {
   const handlePublish = (e, isDraft = false) => {
     e.preventDefault();
     setSuccessMessage('');
-
-    if (!isDraft && !isVerified) {
-      setErrors({
-        general: 'Opportunity publishing is restricted to verified faculty members. Please complete verification in your Faculty Profile.',
-      });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
+    setErrors({});
 
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0 && !isDraft) {
       setErrors(validationErrors);
-      // Scroll to first error
       window.scrollTo({ top: 150, behavior: 'smooth' });
       return;
     }
 
     setIsSubmitting(true);
 
+    const safeTitle = formData.title.trim();
+    const safeShort = formData.shortDescription.trim() || formData.detailedDescription.trim().slice(0, 160) || safeTitle;
+    const safeDetail = formData.detailedDescription.trim() || safeShort || safeTitle;
+    const safeObjectives = formData.researchObjectives.trim() || 'Conduct research, collaborate with lab mentors, and build solutions.';
+    const safeDeadline = formData.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const safeStartDate = formData.startDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const safeSkills = formData.skills.length > 0 ? formData.skills : ['Python', 'Machine Learning', 'Research'];
+    const safeYears = formData.eligibilityYears.length > 0 ? formData.eligibilityYears : ['All Years'];
+
+    const payload = {
+      ...formData,
+      title: safeTitle,
+      category: formData.category || 'Research Project',
+      shortDescription: safeShort,
+      detailedDescription: safeDetail,
+      description: safeDetail,
+      researchObjectives: safeObjectives,
+      objectives: safeObjectives,
+      skills: safeSkills,
+      requiredSkills: safeSkills,
+      eligibilityYears: safeYears,
+      eligibleYears: safeYears,
+      institution: formData.institution.trim() || teacherProfile.institution || 'ABC University',
+      department: formData.department.trim() || teacherProfile.department || 'School of Computer Science',
+      deadline: safeDeadline,
+      applicationDeadline: safeDeadline,
+      startDate: safeStartDate,
+      status: isDraft ? 'Draft' : 'Accepting Applications',
+      teacherName: teacherProfile.fullName || 'Faculty Mentor',
+      teacherEmail: teacherProfile.email || 'faculty@university.edu',
+    };
+
     setTimeout(() => {
-      createOpportunity({
-        ...formData,
-        status: isDraft ? 'Draft' : 'Accepting Applications',
-        teacherName: teacherProfile.fullName,
-        teacherEmail: teacherProfile.email,
-      });
+      createOpportunity(payload);
 
       setIsSubmitting(false);
-      setSuccessMessage('Opportunity Published Successfully! It is now visible across both portals.');
+      setSuccessMessage('Opportunity Published Successfully! It is now live and visible to students.');
 
-      // Smooth scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Navigate to My Opportunities after 1.8s
       setTimeout(() => {
         navigate('/teacher/my-opportunities');
-      }, 1600);
-    }, 700);
+      }, 1500);
+    }, 600);
   };
 
   return (
@@ -263,28 +297,7 @@ export default function TeacherCreateOpportunityPage() {
           </div>
         )}
 
-        {/* Verification Warning Alert */}
-        {!isVerified && (
-          <div className="p-5 rounded-3xl bg-amber-50 border border-amber-200 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn shadow-xs">
-            <div className="flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-bold text-amber-900">
-                  Faculty Identity Verification Required
-                </h3>
-                <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                  Only verified faculty mentors and researchers are authorized to publish opportunities to students. Your current verification status is <span className="font-bold uppercase text-amber-900">{teacherProfile.verificationStatus || 'Not Submitted'}</span>.
-                </p>
-              </div>
-            </div>
-            <Link
-              to="/teacher/profile"
-              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 self-start sm:self-auto shadow-xs transition-colors"
-            >
-              Verify in Faculty Profile
-            </Link>
-          </div>
-        )}
+
 
         {errors.general && (
           <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
@@ -759,8 +772,8 @@ export default function TeacherCreateOpportunityPage() {
 
               <button
                 type="submit"
-                disabled={isSubmitting || !isVerified}
-                title={!isVerified ? 'Only verified faculty can publish opportunities' : ''}
+                disabled={isSubmitting}
+                title=""
                 className="flex-1 sm:flex-initial px-7 py-3 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
