@@ -1,3 +1,4 @@
+import fs from 'fs';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
@@ -73,16 +74,30 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/verifications', verificationRoutes);
 
-// Root route
-app.get('/', (req, res) => {
-  res.send('ScholarConnect API Server is running.');
-});
+// Serve static frontend assets from 'dist' if present (production build)
+const distPath = path.resolve(__dirname, '../dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
 
-// 404 Route Handler
-app.use((req, res) => {
+// 404 Route Handler for unmatched /api routes
+app.use('/api', (req, res) => {
   res.status(404).json({
     success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
+    message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// SPA catch-all fallback: serve index.html for client-side routing
+app.use((req, res) => {
+  const distIndex = path.join(distPath, 'index.html');
+  if (fs.existsSync(distIndex)) {
+    return res.sendFile(distIndex);
+  }
+  res.json({
+    status: 'ok',
+    service: 'ScholarConnect Backend API',
+    message: 'ScholarConnect API Server is running.',
   });
 });
 
