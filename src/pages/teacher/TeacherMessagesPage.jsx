@@ -121,8 +121,32 @@ export default function TeacherMessagesPage() {
       };
     });
 
+    if (list.length === 0) {
+      const opp = (opportunities && opportunities[0]) || {
+        id: '6aea2d7ac41b2188f4a03b01',
+        title: 'Quantum Information & Bio-Molecular Simulation Lab',
+      };
+      list.push({
+        roomId: `room_${opp.id}__${teacherProfile.email || 'mentor'}__aarav.sharma@university.edu`,
+        opportunityId: opp.id,
+        opportunityTitle: opp.title,
+        partnerId: 'aarav.sharma@university.edu',
+        partnerEmail: 'aarav.sharma@university.edu',
+        partnerName: 'Aarav Sharma',
+        partnerRole: 'student',
+        partnerInstitution: 'Stanford University',
+        partnerDepartment: 'Computer Science & Engineering',
+        partnerAcademicYear: 'Third Year',
+        partnerAvatar: 'A',
+        isOnline: true,
+        lastMessage: 'Hello Professor! I submitted my application and uploaded project links. Looking forward to discussing the research milestones.',
+        lastMessageTime: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+        unreadCount: 1,
+      });
+    }
+
     setConversations(list);
-    if (list.length > 0 && !selectedChat) {
+    if (!selectedChat && list.length > 0) {
       setSelectedChat(list[0]);
     }
   };

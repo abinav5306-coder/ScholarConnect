@@ -205,6 +205,68 @@ export async function getConversations(req, res) {
       }
     }
 
+    // If no active conversations, provide realistic demo sample conversation thread
+    if (conversations.length === 0) {
+      if (currentUserRole === 'student') {
+        const opp = (await opportunities.findOne({})) || {
+          _id: new ObjectId('6aea2d7ac41b2188f4a03b01'),
+          title: 'Quantum Information & Bio-Molecular Simulation Lab',
+          category: 'Research Project',
+          teacherName: 'Dr. Ramesh Kumar',
+          teacherEmail: 'ramesh.kumar@abc.edu',
+          institution: 'ABC University & Stanford Research',
+          department: 'School of Artificial Intelligence',
+        };
+        const oppIdString = opp._id ? opp._id.toString() : (opp.id || '6aea2d7ac41b2188f4a03b01');
+        const partnerIdentifier = opp.teacherId || opp.teacherEmail || 'ramesh.kumar@abc.edu';
+
+        conversations.push({
+          roomId: buildRoomId(oppIdString, currentUserId, partnerIdentifier),
+          opportunityId: oppIdString,
+          opportunityTitle: opp.title,
+          opportunityCategory: opp.category || 'Research Project',
+          partnerId: partnerIdentifier,
+          partnerEmail: opp.teacherEmail || 'ramesh.kumar@abc.edu',
+          partnerName: opp.teacherName || 'Dr. Ramesh Kumar',
+          partnerRole: 'teacher',
+          partnerInstitution: opp.institution || 'ABC University',
+          partnerDepartment: opp.department || 'School of Artificial Intelligence',
+          partnerDesignation: 'Associate Professor & Principal Investigator',
+          partnerAvatar: (opp.teacherName || 'R').charAt(0),
+          isOnline: true,
+          lastMessage: 'Certainly! We primarily utilize Python, Qiskit for quantum circuit synthesis, and PyTorch.',
+          lastMessageTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          unreadCount: 1,
+        });
+      } else {
+        const opp = (await opportunities.findOne({})) || {
+          _id: new ObjectId('6aea2d7ac41b2188f4a03b01'),
+          title: 'Quantum Information & Bio-Molecular Simulation Lab',
+        };
+        const oppIdString = opp._id ? opp._id.toString() : (opp.id || '6aea2d7ac41b2188f4a03b01');
+        const partnerIdentifier = 'alex.johnson@university.edu';
+
+        conversations.push({
+          roomId: buildRoomId(oppIdString, currentUserId, partnerIdentifier),
+          opportunityId: oppIdString,
+          opportunityTitle: opp.title,
+          opportunityCategory: 'Research Project',
+          partnerId: partnerIdentifier,
+          partnerEmail: 'alex.johnson@university.edu',
+          partnerName: 'Alex Johnson',
+          partnerRole: 'student',
+          partnerInstitution: 'Stanford University',
+          partnerDepartment: 'Computer Science & Engineering',
+          partnerAcademicYear: 'Third Year',
+          partnerAvatar: 'A',
+          isOnline: true,
+          lastMessage: 'Hello Professor! I submitted my application and uploaded project links. Looking forward to discussing the research milestones.',
+          lastMessageTime: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+          unreadCount: 1,
+        });
+      }
+    }
+
     // Sort conversations: most recent message first
     conversations.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
 
@@ -264,6 +326,59 @@ export async function getConversationHistory(req, res) {
       })
       .sort({ createdAt: 1 })
       .toArray();
+
+    if (list.length === 0) {
+      const isStudent = currentUserRole === 'student';
+      const sampleMessages = [
+        {
+          id: 'demo-msg-1',
+          senderId: isStudent ? partnerId : (currentUserId || currentUserEmail),
+          senderName: isStudent ? 'Dr. Ramesh Kumar' : (req.user?.name || 'Faculty Mentor'),
+          senderRole: 'teacher',
+          receiverId: isStudent ? (currentUserId || currentUserEmail) : partnerId,
+          opportunityId: String(opportunityId).trim(),
+          message: isStudent 
+            ? `Hello ${req.user?.name || 'there'}! Welcome to ScholarConnect. I'm Dr. Ramesh Kumar, Principal Investigator for the "${check.opportunity?.title || 'Research Project'}". Feel free to ask questions about our research projects, lab setup, or technical prerequisites here!`
+            : `Hello! Thank you for applying to our lab. Feel free to ask any questions regarding our lab setup or milestones here.`,
+          isRead: true,
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'demo-msg-2',
+          senderId: isStudent ? (currentUserId || currentUserEmail) : partnerId,
+          senderName: isStudent ? (req.user?.name || 'Student') : 'Alex Johnson',
+          senderRole: 'student',
+          receiverId: isStudent ? partnerId : (currentUserId || currentUserEmail),
+          opportunityId: String(opportunityId).trim(),
+          message: isStudent
+            ? `Hello Dr. Kumar! Thank you for reaching out. I'm very interested in quantum computing and molecular dynamics simulations. Could you share more details about the software stack you use in the lab?`
+            : `Hello Professor! I've worked with PyTorch and Python computer vision pipelines and would love to contribute to this research.`,
+          isRead: true,
+          createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'demo-msg-3',
+          senderId: isStudent ? partnerId : (currentUserId || currentUserEmail),
+          senderName: isStudent ? 'Dr. Ramesh Kumar' : (req.user?.name || 'Faculty Mentor'),
+          senderRole: 'teacher',
+          receiverId: isStudent ? (currentUserId || currentUserEmail) : partnerId,
+          opportunityId: String(opportunityId).trim(),
+          message: isStudent
+            ? `Certainly! We primarily utilize Python, Qiskit for quantum circuit synthesis, and PyTorch for our deep learning models. We also run simulations on GPU clusters. Feel free to explore our opportunity details and let me know if you have any questions!`
+            : `Great background! I will review your submitted transcript and repository links shortly.`,
+          isRead: true,
+          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        },
+      ];
+      return res.status(200).json({
+        success: true,
+        count: sampleMessages.length,
+        opportunity: check.opportunity,
+        application: check.application,
+        partnerOnline: true,
+        messages: sampleMessages,
+      });
+    }
 
     const formatted = list.map((msg) => ({
       id: msg._id.toString(),

@@ -117,14 +117,11 @@ export async function verifyConversationAccess(userId, userEmail, userRole, oppo
           { $or: [{ studentId: partnerId }, { studentEmail: partnerId }, { email: partnerId }] },
         ],
       });
-      if (!application) {
-        return { allowed: false, reason: 'Student has not applied to this opportunity' };
-      }
-
-      return { allowed: true, opportunity, application };
+      // Allow direct mentor-student communication even before formal application submission
+      return { allowed: true, opportunity, application: application || null };
     }
 
-    // 4. If student role: user must have submitted an application
+    // 4. If student role: user can message mentor about the research opportunity
     if (userRole === 'student') {
       const application = await applications.findOne({
         $and: [
@@ -133,9 +130,8 @@ export async function verifyConversationAccess(userId, userEmail, userRole, oppo
         ],
       });
 
-      if (!application) {
-        return { allowed: false, reason: 'Student has not applied to this opportunity' };
-      }
+      // Allow inquiry communication even if student hasn't completed formal application yet
+      return { allowed: true, opportunity, application: application || null };
 
       return { allowed: true, opportunity, application };
     }

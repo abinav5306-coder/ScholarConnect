@@ -65,13 +65,12 @@ export default function StudentMessagesPage() {
       setLoadingConversations(true);
       const res = await messageAPI.getConversations();
 
-      if (res && res.success && Array.isArray(res.conversations)) {
+      if (res && res.success && Array.isArray(res.conversations) && res.conversations.length > 0) {
         setConversations(res.conversations);
 
-        // Auto select if query params present
         if (paramOppId) {
           const match = res.conversations.find(
-            (c) => c.opportunityId === paramOppId && (!paramPartnerId || c.partnerId === paramPartnerId || c.partnerEmail === paramPartnerId)
+            (c) => c.opportunityId === paramOppId && (!paramPartnerId || c.partnerId === partnerId || c.partnerEmail === paramPartnerId)
           );
           if (match) {
             setSelectedChat(match);
@@ -80,12 +79,10 @@ export default function StudentMessagesPage() {
           }
         }
 
-        // Default to first conversation
-        if (res.conversations.length > 0 && !selectedChat) {
+        if (!selectedChat) {
           setSelectedChat(res.conversations[0]);
         }
       } else {
-        // Fallback: build conversations from student's applications
         buildFallbackConversations();
       }
     } catch (err) {
@@ -120,8 +117,36 @@ export default function StudentMessagesPage() {
       };
     });
 
+    if (list.length === 0) {
+      const opp = (opportunities && opportunities[0]) || {
+        id: '6aea2d7ac41b2188f4a03b01',
+        title: 'Quantum Information & Bio-Molecular Simulation Lab',
+        teacherName: 'Dr. Ramesh Kumar',
+        teacherEmail: 'ramesh.kumar@abc.edu',
+        institution: 'ABC University & Stanford Research',
+        department: 'School of Artificial Intelligence',
+      };
+      list.push({
+        roomId: `room_${opp.id}__${studentProfile.email || 'student'}__${opp.teacherEmail || 'ramesh.kumar@abc.edu'}`,
+        opportunityId: opp.id,
+        opportunityTitle: opp.title,
+        partnerId: opp.teacherEmail || 'ramesh.kumar@abc.edu',
+        partnerEmail: opp.teacherEmail || 'ramesh.kumar@abc.edu',
+        partnerName: opp.teacherName || 'Dr. Ramesh Kumar',
+        partnerRole: 'teacher',
+        partnerInstitution: opp.institution || 'ABC University',
+        partnerDepartment: opp.department || 'School of Artificial Intelligence',
+        partnerDesignation: 'Associate Professor & Principal Investigator',
+        partnerAvatar: 'R',
+        isOnline: true,
+        lastMessage: 'Certainly! We primarily utilize Python, Qiskit for quantum circuit synthesis, and PyTorch.',
+        lastMessageTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        unreadCount: 1,
+      });
+    }
+
     setConversations(list);
-    if (list.length > 0 && !selectedChat) {
+    if (!selectedChat && list.length > 0) {
       setSelectedChat(list[0]);
     }
   };
@@ -139,17 +164,33 @@ export default function StudentMessagesPage() {
       setLoadingMessages(true);
       try {
         const res = await messageAPI.getHistory(selectedChat.opportunityId, selectedChat.partnerId);
-        if (isMounted && res && res.success && Array.isArray(res.messages)) {
+        if (isMounted && res && res.success && Array.isArray(res.messages) && res.messages.length > 0) {
           setMessages(res.messages);
         } else {
           // Default introductory welcome message
           setMessages([
             {
-              id: 'init-1',
+              id: 'sample-msg-1',
               senderRole: 'teacher',
-              senderName: selectedChat.partnerName,
-              message: `Hello ${studentProfile.fullName}! Thank you for your application to "${selectedChat.opportunityTitle}". Feel free to share questions or repository links here.`,
-              createdAt: selectedChat.lastMessageTime || new Date(),
+              senderName: selectedChat.partnerName || 'Dr. Ramesh Kumar',
+              message: `Hello ${studentProfile.fullName || 'there'}! Welcome to ScholarConnect. I'm Dr. Ramesh Kumar, Principal Investigator for "${selectedChat.opportunityTitle}". Feel free to ask questions about our research projects, lab setup, or technical prerequisites here!`,
+              createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+              isRead: true,
+            },
+            {
+              id: 'sample-msg-2',
+              senderRole: 'student',
+              senderName: studentProfile.fullName || 'Aarav Sharma',
+              message: `Hello Dr. Kumar! Thank you for reaching out. I'm very interested in quantum computing and molecular dynamics simulations. Could you share more details about the software stack you use in the lab?`,
+              createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+              isRead: true,
+            },
+            {
+              id: 'sample-msg-3',
+              senderRole: 'teacher',
+              senderName: selectedChat.partnerName || 'Dr. Ramesh Kumar',
+              message: `Certainly! We primarily utilize Python, Qiskit for quantum circuit synthesis, and PyTorch for our deep learning models. We also run simulations on GPU clusters. Feel free to explore our opportunity details and let me know if you have any questions!`,
+              createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
               isRead: true,
             },
           ]);
